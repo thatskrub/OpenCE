@@ -646,11 +646,28 @@ static const struct config_setting config_settings[] =
 		"radii plus 15 percent, make one more there, up to\n"
 		"floor((players - 1) * coop_enemies * 2 / 300) extras, or floor((coop_enemies_multiplier - 1) * 2 / 3) in static mode.\n"
 		"The host alone creates them, and waits while the starting place is blocked." },
-	{ "network.firefight", _config_string, "\"\"", "HALO_NET_FIREFIGHT", _environment_value, _platform_all,
-		"Firefight: the arena (\"crash_site\", on a30) whose level, played as a\n"
-		"campaign level alone or hosted in co-op, has the campaign's enemies come\n"
-		"in waves instead of its missions (port/linux/game/firefight.c); empty\n"
-		"for none." },
+	{ "network.firefight", _config_string, "\"off\"", "HALO_NET_FIREFIGHT", _environment_value, _platform_all,
+		"Firefight (port/linux/game/firefight.c): a level played as a campaign\n"
+		"level, alone or hosted in co-op, has the campaign's enemies come in waves\n"
+		"instead of its missions: \"on\" on the level's own arena (a30's\n"
+		"\"crash_site\"), an arena's name for that one, \"off\" (or empty) for\n"
+		"none. Server Setup's FIREFIGHT in co-op writes its choice here." },
+	{ "network.firefight_lives", _config_integer, "7", "HALO_NET_FIREFIGHT_LIVES", _environment_value,
+		_platform_all,
+		"Firefight's lives the team shares at the start (1 to 99); each respawn\n"
+		"takes one. Server Setup's FIREFIGHT > STARTING LIVES writes it." },
+	{ "network.firefight_round_lives", _config_integer, "1", "HALO_NET_FIREFIGHT_ROUND_LIVES", _environment_value,
+		_platform_all,
+		"Firefight's lives the team gets for each round it finishes (0 to 9).\n"
+		"Server Setup's FIREFIGHT > LIVES PER ROUND writes it." },
+	{ "network.firefight_waves", _config_integer, "5", "HALO_NET_FIREFIGHT_WAVES", _environment_value, _platform_all,
+		"Firefight's waves a round (2 to 9), the last its boss wave. Server\n"
+		"Setup's FIREFIGHT > WAVES PER ROUND writes it." },
+	{ "network.firefight_start_set", _config_integer, "1", "HALO_NET_FIREFIGHT_START_SET", _environment_value,
+		_platform_all,
+		"The Firefight set a game starts at (1 to 9): each set's waves are\n"
+		"bigger, with more majors. Server Setup's FIREFIGHT > STARTING SET\n"
+		"writes it." },
 	{ "network.coop_enemies", _config_integer, "50", "HALO_NET_COOP_ENEMIES", _environment_value, _platform_all,
 		"Online co-op's extra enemies per player, a percentage: for each player\n"
 		"past the first, each squad of enemies a level places gets this much of\n"

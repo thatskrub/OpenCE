@@ -1,4 +1,4 @@
-version 40
+version 41
 bound CHAT_TEXT_SIZE 64
 bound DISCORD_ID_SIZE 24
 bound DISCORD_NAME_SIZE 40
@@ -275,7 +275,7 @@ struct distributed_damage_event_message c954363dcf26
 struct distributed_fire_origin 700dfdb20582
 struct distributed_fire_origin_message 7613e8f9d43e
 struct distributed_firefight_score 2e04e2cf7856
-struct distributed_firefight_state 33f96e22c79f
+struct distributed_firefight_state 780d3c4dd53c
 struct distributed_firefight_state_message 3639527dd899
 struct distributed_hit_report 9a44ca43a88b
 struct distributed_hit_report_message 37279f2addca

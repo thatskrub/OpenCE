@@ -3493,13 +3493,15 @@ static char const *const server_settings_gametype_rows[] =
 /* the most players a co-op game hosted starts with (maximum_players') */
 #define COOPERATIVE_DEFAULT_PLAYERS 16
 /* Server Setup's help for co-op's options' rows (CO-OP OPTIONS, VOICE AND
-VOTING), PASSWORD's and MAP SHARING's (its help_strings, tools/port_settings.py) */
+VOTING, FIREFIGHT), PASSWORD's and MAP SHARING's (its help_strings,
+tools/port_settings.py) */
 #define COOPERATIVE_OPTIONS_HELP 12
 #define COOPERATIVE_VOICE_OPTIONS_HELP 13
-#define SERVER_PASSWORD_HELP 14
-#define MAP_SHARE_OPTIONS_HELP 15
+#define COOPERATIVE_FIREFIGHT_OPTIONS_HELP 14
+#define SERVER_PASSWORD_HELP 15
+#define MAP_SHARE_OPTIONS_HELP 16
 /* (LISTING's PUBLIC on a machine with a publisher key: server_master.c) */
-#define SERVER_LISTING_PUBLISHER_HELP 16
+#define SERVER_LISTING_PUBLISHER_HELP 17
 
 /* whether this machine has a publisher key (read as Server Setup opens) */
 static boolean server_settings_publisher;
@@ -3644,10 +3646,13 @@ static void server_settings_update(struct widget_instance *list)
 
 			visible_set(named(list, "op_coop_options", 0), cooperative);
 			visible_set(named(list, "op_voice_options", 0), cooperative);
+			visible_set(named(list, "op_firefight_options", 0), cooperative);
 			if (help && list->focused_child == named(list, "op_coop_options", 0))
 				help->parameters.text_box.string_list_index = COOPERATIVE_OPTIONS_HELP;
 			else if (help && list->focused_child == named(list, "op_voice_options", 0))
 				help->parameters.text_box.string_list_index = COOPERATIVE_VOICE_OPTIONS_HELP;
+			else if (help && list->focused_child == named(list, "op_firefight_options", 0))
+				help->parameters.text_box.string_list_index = COOPERATIVE_FIREFIGHT_OPTIONS_HELP;
 			/* (MAP SHARING's, any game's: map_share.c) */
 			else if (help && list->focused_child == named(list, "op_map_share_options", 0))
 				help->parameters.text_box.string_list_index = MAP_SHARE_OPTIONS_HELP;
@@ -6286,6 +6291,16 @@ static struct gametype_option const gametype_options[] =
 		{ "true", "false" } },
 	{ "coop_ally_friendly_fire_spinner", _option_setting, 0, 0, 2, { 0 }, "network.coop_ally_friendly_fire",
 		{ "true", "false" } },
+	/* Firefight's (Server Setup's FIREFIGHT: tools/port_settings.py's
+	COOP_SETUP_SCREENS; firefight.c) */
+	{ "firefight_spinner", _option_setting, 0, 0, 2, { 0 }, "network.firefight", { "off", "on" } },
+	{ "firefight_lives_spinner", _option_setting, 0, 0, 5, { 0 }, "network.firefight_lives",
+		{ "3", "5", "7", "10", "15" } },
+	{ "firefight_round_lives_spinner", _option_setting, 0, 0, 4, { 0 }, "network.firefight_round_lives",
+		{ "0", "1", "2", "3" } },
+	{ "firefight_waves_spinner", _option_setting, 0, 0, 3, { 0 }, "network.firefight_waves", { "3", "5", "7" } },
+	{ "firefight_start_set_spinner", _option_setting, 0, 0, 3, { 0 }, "network.firefight_start_set",
+		{ "1", "2", "3" } },
 	/* map sharing's (Server Setup's MAP SHARING: tools/port_settings.py's
 	MAP_SHARE_SETUP; map_share.c) */
 	{ "map_share_spinner", _option_setting, 0, 0, 2, { 0 }, "network.map_share", { "true", "false" } },

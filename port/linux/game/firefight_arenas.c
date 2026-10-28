@@ -96,3 +96,16 @@ struct firefight_arena const *firefight_arena_get(
 	}
 	return NULL;
 }
+
+struct firefight_arena const *firefight_arena_for_scenario(
+	char const *scenario)
+{
+	short index;
+
+	for (index = 0; scenario && index < NUMBEROF(firefight_arenas); index++)
+	{
+		if (!_stricmp(firefight_arenas[index].scenario, scenario))
+			return &firefight_arenas[index];
+	}
+	return NULL;
+}

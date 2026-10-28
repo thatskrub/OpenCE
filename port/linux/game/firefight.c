@@ -39,6 +39,7 @@ the lives and the scores) as network_firefight.c sends it.
 #include "ai/ai_script.h"
 #include "ai/encounters.h"
 #include "ai/actor_types.h"
+#include "editor/editor_stubs.h"
 #include "game/game.h"
 #include "game/game_allegiance.h"
 #include "game/game_engine.h"
@@ -68,6 +69,8 @@ the lives and the scores) as network_firefight.c sends it.
 #include <string.h>
 
 void platform_log(char const *format, ...);
+char const *config_string(char const *name);
+long config_integer(char const *name);
 
 /* ---------- constants */
 
@@ -113,9 +116,12 @@ enum
 	/* a player farther than this from the stage's start is moved there */
 	FIREFIGHT_ARRIVED_DISTANCE = 20,
 
-	/* the team's lives at the start, and for each round it finishes */
-	FIREFIGHT_STARTING_LIVES = 7,
-	FIREFIGHT_ROUND_LIVES = 1,
+	/* the settings' bounds (network.firefight_lives and the rest) */
+	FIREFIGHT_MAXIMUM_LIVES = 99,
+	FIREFIGHT_MAXIMUM_ROUND_LIVES = 9,
+	FIREFIGHT_MINIMUM_WAVES = 2,
+	FIREFIGHT_MAXIMUM_WAVES = 9,
+	FIREFIGHT_MAXIMUM_START_SET = 9,
 	/* every player dead: the time before they respawn at the stage's start */
 	FIREFIGHT_ALL_DEAD_TICKS = 5 * TICKS_PER_SECOND,
 	/* the game over: the time before the game ends */
@@ -195,8 +201,12 @@ static struct
 	short revealed_count;
 	long revealed_units[FIREFIGHT_REMAINING_ENEMIES];
 
-	/* the team's lives left */
+	/* the team's lives left, and those each round it finishes adds
+	(network.firefight_round_lives) */
 	short lives;
+	short round_lives;
+	/* a round's waves, the last its boss wave (network.firefight_waves) */
+	short waves_per_round;
 	/* when every player was found dead (NONE: someone lives) */
 	long all_dead_time;
 	/* the game was ended (game over) */
@@ -417,7 +427,7 @@ static short firefight_choose_group(
 static boolean firefight_boss_wave(
 	void)
 {
-	return firefight.wave == FIREFIGHT_WAVES_PER_ROUND - 1;
+	return firefight.wave == firefight.waves_per_round - 1;
 }
 
 /* the scripts carried many of Bungie's waves in dropships, from where they
@@ -875,6 +885,7 @@ static void firefight_build_status(
 	status.set = firefight.set;
 	status.round = firefight.round;
 	status.wave = firefight.wave;
+	status.waves_per_round = firefight.waves_per_round;
 	status.lives = firefight.lives;
 	status.living = (short)MIN(firefight_living_count(), SHORT_MAX);
 	status.team_score = firefight.team_score;
@@ -913,12 +924,20 @@ boolean firefight_new_game(
 	/* (a co-op client's game is Firefight as its host's state says) */
 	if (network_game_distributed_client())
 		return FALSE;
-	if (!arena_name || !arena_name[0] || game_in_editor() || !global_scenario ||
+	if (!arena_name || !arena_name[0] || !_stricmp(arena_name, "off") || game_in_editor() || !global_scenario ||
 		global_scenario->type != _scenario_type_solo || game_engine_running())
 	{
 		return FALSE;
 	}
-	firefight.arena = firefight_arena_get(arena_name);
+	/* ("on": the level's own arena, as Server Setup's FIREFIGHT sets it) */
+	if (!_stricmp(arena_name, "on"))
+	{
+		firefight.arena = firefight_arena_for_scenario(firefight_scenario_name());
+		if (!firefight.arena)
+			return FALSE;
+	}
+	else
+		firefight.arena = firefight_arena_get(arena_name);
 	if (!firefight.arena)
 	{
 		platform_log("firefight: no arena %s", arena_name);
@@ -941,11 +960,17 @@ boolean firefight_new_game(
 	firefight.active = TRUE;
 	firefight.attack_time = NONE;
 	firefight.revealed_time = NONE;
-	firefight.lives = FIREFIGHT_STARTING_LIVES;
+	firefight.lives = (short)PIN(config_integer("network.firefight_lives"), 1, FIREFIGHT_MAXIMUM_LIVES);
+	firefight.round_lives = (short)PIN(config_integer("network.firefight_round_lives"), 0,
+		FIREFIGHT_MAXIMUM_ROUND_LIVES);
+	firefight.waves_per_round = (short)PIN(config_integer("network.firefight_waves"), FIREFIGHT_MINIMUM_WAVES,
+		FIREFIGHT_MAXIMUM_WAVES);
+	firefight.set = (short)(PIN(config_integer("network.firefight_start_set"), 1, FIREFIGHT_MAXIMUM_START_SET) - 1);
 	firefight.all_dead_time = NONE;
 	firefight_set_state(_firefight_state_moving);
-	platform_log("firefight: %s on %s, %d stages", firefight.arena->name, firefight_scenario_name(),
-		firefight.stage_count);
+	platform_log("firefight: %s on %s, %d stages, %d lives (+%d a round), %d waves a round, from set %d",
+		firefight.arena->name, firefight_scenario_name(), (int)firefight.stage_count, (int)firefight.lives,
+		(int)firefight.round_lives, (int)firefight.waves_per_round, (int)firefight.set + 1);
 
 	return TRUE;
 }
@@ -988,7 +1013,7 @@ void firefight_update(
 			{
 				firefight_hide_revealed(TRUE);
 				firefight.revealed_time = NONE;
-				firefight.lives = (short)MIN(firefight.lives + FIREFIGHT_ROUND_LIVES, SHORT_MAX);
+				firefight.lives = (short)MIN(firefight.lives + firefight.round_lives, SHORT_MAX);
 				platform_log("firefight: set %d round %d over, %d lives, team score %ld", firefight.set + 1,
 					firefight.round + 1, firefight.lives, firefight.team_score);
 				firefight_set_state(_firefight_state_intermission);

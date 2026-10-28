@@ -64,6 +64,7 @@ void network_firefight_update(struct network_firefight_status const *status)
 	message.state.state = (byte)PIN(status->state, 0, UNSIGNED_CHAR_MAX);
 	message.state.stage = (byte)PIN(status->stage, 0, UNSIGNED_CHAR_MAX);
 	message.state.wave = (byte)PIN(status->wave, 0, UNSIGNED_CHAR_MAX);
+	message.state.waves_per_round = (byte)PIN(status->waves_per_round, 1, UNSIGNED_CHAR_MAX);
 	message.state.set = (word)PIN(status->set, 0, UNSIGNED_SHORT_MAX);
 	message.state.round = (word)PIN(status->round, 0, UNSIGNED_SHORT_MAX);
 	message.state.lives = (word)PIN(status->lives, 0, UNSIGNED_SHORT_MAX);
@@ -117,7 +118,9 @@ void network_firefight_handle_message(long machine_index, word const *data, word
 	if (message.header.type != _distributed_message_firefight_state ||
 		message.header.count > NETWORK_FIREFIGHT_MAXIMUM_SCORES ||
 		size != firefight_state_message_size(message.header.count) ||
-		(message.state.flags & ~((1 << NUMBER_OF_NETWORK_FIREFIGHT_FLAGS) - 1)) != 0)
+		(message.state.flags & ~((1 << NUMBER_OF_NETWORK_FIREFIGHT_FLAGS) - 1)) != 0 ||
+		message.state.waves_per_round == 0 || message.state.wave >= message.state.waves_per_round ||
+		message.state.reserved[0] || message.state.reserved[1] || message.state.reserved[2])
 	{
 		return;
 	}
@@ -150,6 +153,7 @@ void network_firefight_handle_message(long machine_index, word const *data, word
 	status->state = message.state.state;
 	status->stage = message.state.stage;
 	status->wave = message.state.wave;
+	status->waves_per_round = message.state.waves_per_round;
 	status->set = (short)MIN(message.state.set, SHORT_MAX);
 	status->round = (short)MIN(message.state.round, SHORT_MAX);
 	status->lives = (short)MIN(message.state.lives, SHORT_MAX);

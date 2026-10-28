@@ -1421,6 +1421,12 @@ MAXIMUM_PLAYERS = [2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128]
 # gametype_options have their values
 COOP_ENEMIES_PERCENTAGES = [25, 50, 100, 150, 200]
 COOP_ENEMIES_MULTIPLIERS = [2, 4, 8, 16, 32]
+# FIREFIGHT's amounts (network.firefight_lives, _round_lives, _waves and
+# _start_set), as menu_functions.c's gametype_options have their values
+FIREFIGHT_LIVES = [3, 5, 7, 10, 15]
+FIREFIGHT_ROUND_LIVES = [0, 1, 2, 3]
+FIREFIGHT_WAVES = [3, 5, 7]
+FIREFIGHT_START_SETS = [1, 2, 3]
 # co-op's Server Setup options, in screens of their own as the gametype's
 # are (its rows: _server_settings), each its key, its title, its row's help
 # and its rows (as TEAMPLAY_ROWS: each spinner's key, label, words and the
@@ -1467,6 +1473,24 @@ COOP_SETUP_SCREENS = [
     ]),
     ("voice_options", "VOICE AND VOTING", "Voice chat, text chat and votes to kick a player,\\nfor this game.",
      TEAMPLAY_ROWS),
+    # (Firefight: port/linux/game/firefight.c; menu_functions.c's
+    # gametype_options give their settings' values)
+    ("firefight_options", "FIREFIGHT", "Waves of the campaign's enemies in place of the\\nlevel's missions, for this game.", [
+        ("firefight", "FIREFIGHT:", ["OFF", "ON"], [
+            "The level is played as the campaign has it.",
+            "The campaign's enemies come in waves on the level's\\narena (a30 has one), the team sharing its lives.",
+        ]),
+        ("firefight_lives", "STARTING LIVES:", [str(value) for value in FIREFIGHT_LIVES],
+         ["The lives the team shares at the start. Each\\nrespawn takes one; with none left, the game ends."] *
+         len(FIREFIGHT_LIVES)),
+        ("firefight_round_lives", "LIVES PER ROUND:", [str(value) for value in FIREFIGHT_ROUND_LIVES],
+         ["The lives the team gets for each round it\\nfinishes."] * len(FIREFIGHT_ROUND_LIVES)),
+        ("firefight_waves", "WAVES PER ROUND:", [str(value) for value in FIREFIGHT_WAVES],
+         ["The waves of a round, the last its boss wave,\\nwhose enemies are all majors."] * len(FIREFIGHT_WAVES)),
+        ("firefight_start_set", "STARTING SET:", [str(value) for value in FIREFIGHT_START_SETS],
+         ["The set the game starts at: each set's waves are\\nbigger, with more majors, than the last's."] *
+         len(FIREFIGHT_START_SETS)),
+    ]),
 ]
 # Server Setup's map sharing (port/linux/game/map_share.c), for any game,
 # laid out as co-op's options are (its key, its title, its row's help and

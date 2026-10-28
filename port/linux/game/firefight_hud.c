@@ -130,11 +130,21 @@ static void firefight_check_banner(
 		usnprintf(text, NUMBEROF(text) - 1, L"SET %d\r\nROUND %d", status->set + 1, status->round + 1);
 	else if (status->round != last->round)
 		usnprintf(text, NUMBEROF(text) - 1, L"ROUND %d", status->round + 1);
+	/* (the round's lives, as they came) */
 	else if (status->state == _firefight_state_intermission && last->state != _firefight_state_intermission)
-		usnprintf(text, NUMBEROF(text) - 1, L"ROUND COMPLETE\r\n+1 LIFE");
+	{
+		short added = (short)(status->lives - last->lives);
+
+		if (added == 1)
+			usnprintf(text, NUMBEROF(text) - 1, L"ROUND COMPLETE\r\n+1 LIFE");
+		else if (added > 1)
+			usnprintf(text, NUMBEROF(text) - 1, L"ROUND COMPLETE\r\n+%d LIVES", added);
+		else
+			usnprintf(text, NUMBEROF(text) - 1, L"ROUND COMPLETE");
+	}
 	else if (status->wave != last->wave)
 	{
-		if (status->wave == FIREFIGHT_WAVES_PER_ROUND - 1)
+		if (status->wave == status->waves_per_round - 1)
 			usnprintf(text, NUMBEROF(text) - 1, L"BOSS WAVE");
 		else
 			usnprintf(text, NUMBEROF(text) - 1, L"WAVE %d", status->wave + 1);
@@ -178,8 +188,8 @@ void firefight_hud_draw(
 	{
 		usnprintf(text, NUMBEROF(text) - 1, L"SET %d   ROUND %d   %s %d/%d\r\nENEMIES %d   LIVES %d   SCORE %ld",
 			status.set + 1, status.round + 1,
-			status.wave == FIREFIGHT_WAVES_PER_ROUND - 1 ? L"BOSS WAVE" : L"WAVE",
-			status.wave + 1, FIREFIGHT_WAVES_PER_ROUND, status.living, status.lives,
+			status.wave == status.waves_per_round - 1 ? L"BOSS WAVE" : L"WAVE",
+			status.wave + 1, status.waves_per_round, status.living, status.lives,
 			player ? firefight_player_score(&status, player_index) : 0);
 	}
 	text[NUMBEROF(text) - 1] = 0;

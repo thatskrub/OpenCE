@@ -3,9 +3,6 @@ level (port/linux/game/firefight.c) */
 #ifndef HALO_FIREFIGHT_H
 #define HALO_FIREFIGHT_H
 
-/* a round's waves, the last its boss wave */
-#define FIREFIGHT_WAVES_PER_ROUND 5
-
 /* the director's states (network_firefight_status.state) */
 enum
 {

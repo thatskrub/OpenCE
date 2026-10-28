@@ -40,6 +40,9 @@ struct distributed_firefight_state
 	/* the stage's enemies alive */
 	word living;
 	long team_score;
+	/* a round's waves, the last its boss wave */
+	byte waves_per_round;
+	byte reserved[3];
 };
 
 /* what the host's state says, for the HUD (step 6) */
@@ -52,6 +55,7 @@ struct network_firefight_status
 	short set;
 	short round;
 	short wave;
+	short waves_per_round;
 	short lives;
 	short living;
 	long team_score;

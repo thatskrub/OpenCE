@@ -308,7 +308,10 @@ count, the flags and indices) and keeps the latest, by its game time; the
 host's state alone makes a client's game Firefight, whatever its own
 `network.firefight` says. The version is raised because a client that does
 not know the message would not show the host's Firefight state, nor know its
-game is one.
+game is one. Then version 41 adds to that state the
+waves a round has (`waves_per_round`, then three reserved bytes, zero),
+which the host's `network.firefight_waves` sets: a client needs it to know
+which wave is the boss wave, and checks the wave is below it.
 
 `port/linux/network_format.txt` records the wire format of the current
 version (`tools/network_format.py`): `test_linux_port.py` fails when the

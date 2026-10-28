@@ -51,5 +51,7 @@ struct firefight_arena
 
 /* the arena of that name, NULL if none */
 struct firefight_arena const *firefight_arena_get(char const *name);
+/* the first arena of that level (its scenario's name), NULL if none */
+struct firefight_arena const *firefight_arena_for_scenario(char const *scenario);
 
 #endif
