@@ -52,7 +52,10 @@ the lives and the scores) as network_firefight.c sends it.
 #include "physics/collisions.h"
 #include "scenario/scenario.h"
 #include "scenario/scenario_definitions.h"
+#include "sound/game_sound.h"
+#include "sound/sound_definitions.h"
 #include "tag_files/tag_files.h"
+#include "tag_files/tag_groups.h"
 #include "units/bipeds.h"
 #include "units/units.h"
 
@@ -76,7 +79,6 @@ enum
 	/* an encounter's firing positions (the most the maps have is 512) */
 	FIREFIGHT_MAXIMUM_FIRING_POSITIONS = 1024,
 
-	FIREFIGHT_WAVES_PER_ROUND = 5,
 	FIREFIGHT_MINIMUM_ROUNDS_PER_SET = 3,
 
 	/* the first wave, after the players arrive */
@@ -135,15 +137,6 @@ enum
 
 /* the major upgrade chance each set adds */
 #define FIREFIGHT_SET_MAJOR_UPGRADE 0.15f
-
-enum
-{
-	_firefight_state_moving,
-	_firefight_state_wave_gap,
-	_firefight_state_wave,
-	_firefight_state_intermission,
-	_firefight_state_game_over,
-};
 
 /* ---------- structures */
 
@@ -528,6 +521,18 @@ static void firefight_start_wave(
 		index++;
 	}
 	firefight.placing_boss = FALSE;
+	/* (the wave announced, as the level's scripts announce theirs: their
+	sound_impulse_start, which co-op sends its clients) */
+	if (firefight.arena->wave_sound_count > 0)
+	{
+		long sound_index = tag_loaded(SOUND_DEFINITION_TAG,
+			firefight.arena->wave_sounds[random_range(0, firefight.arena->wave_sound_count)]);
+
+		if (sound_index != NONE)
+			scripted_sound_new(sound_index, NONE, 1.0f);
+		else
+			platform_log("firefight: %s has no wave sound", firefight_scenario_name());
+	}
 	firefight.attack_time = firefight.attack_count > 0 ? game_time_get() + FIREFIGHT_ATTACK_DELAY_TICKS : NONE;
 	firefight.wave_enemies = (short)MAX(firefight_living_count() - living_before, 0);
 	platform_log("firefight: set %d round %d wave %d%s: %d enemies (%ld living)", firefight.set + 1,
@@ -784,6 +789,27 @@ static void firefight_log_scores(
 	platform_log("firefight: team score %ld", firefight.team_score);
 }
 
+/* whether every player in the game is dead (players.c's all_dead lags a
+tick behind a respawn: a player just respawned with the last life is not) */
+static boolean firefight_team_dead(
+	void)
+{
+	struct data_iterator iterator;
+	struct player_datum *player;
+	boolean any = FALSE;
+
+	data_iterator_new(&iterator, player_data);
+	while ((player = (struct player_datum *)data_iterator_next(&iterator)) != NULL)
+	{
+		if (player->quit_out_of_game)
+			continue;
+		if (player->unit_index != NONE)
+			return FALSE;
+		any = TRUE;
+	}
+	return any;
+}
+
 /* every player dead: after a moment, those the lives allow respawn at the
 stage's start; with none left, the game is over. Once over, it ends: back to
 the main menu, or a co-op host's round ends for everyone (as a won co-op
@@ -807,7 +833,7 @@ static void firefight_update_team(
 		}
 		return;
 	}
-	if (!players_are_all_dead())
+	if (!firefight_team_dead())
 	{
 		firefight.all_dead_time = NONE;
 		return;
@@ -833,9 +859,9 @@ static void firefight_update_team(
 	}
 }
 
-/* the state the host's clients are sent (network_firefight.c) */
-static void firefight_send_status(
-	void)
+/* the director's state, as its clients are sent it (network_firefight.c) */
+static void firefight_build_status(
+	struct network_firefight_status *status_out)
 {
 	struct network_firefight_status status;
 	struct data_iterator iterator;
@@ -862,7 +888,7 @@ static void firefight_send_status(
 		status.scores[status.score_count].score = firefight.scores[index];
 		status.score_count++;
 	}
-	network_firefight_update(&status);
+	*status_out = status;
 }
 
 /* ---------- public code */
@@ -986,7 +1012,23 @@ void firefight_update(
 		break;
 	}
 	firefight_update_team();
-	firefight_send_status();
+	{
+		struct network_firefight_status status;
+
+		firefight_build_status(&status);
+		network_firefight_update(&status);
+	}
+}
+
+boolean firefight_status(
+	struct network_firefight_status *status)
+{
+	if (network_game_distributed_client())
+		return network_firefight_status(status) && status->active;
+	if (!firefight.active)
+		return FALSE;
+	firefight_build_status(status);
+	return TRUE;
 }
 
 boolean firefight_respawn_allowed(

@@ -68,11 +68,20 @@ static struct firefight_stage const a30_stages[] =
 	{ "cliff_wave", NULL, a30_cliff_groups, NUMBEROF(a30_cliff_groups) },
 };
 
+/* (the Marines' shouts the level's wave scripts play: mission_first_wave_2's,
+_3's and _4's) */
+static char const *const a30_wave_sounds[] =
+{
+	"sound\\dialog\\a30\\a30_210_bisenti",
+	"sound\\dialog\\a30\\a30_210_fitzgerald",
+	"sound\\dialog\\a30\\a30_220_bisenti",
+};
+
 /* ---------- the arenas */
 
 static struct firefight_arena const firefight_arenas[] =
 {
-	{ "crash_site", "a30", a30_stages, NUMBEROF(a30_stages) },
+	{ "crash_site", "a30", a30_stages, NUMBEROF(a30_stages), a30_wave_sounds, NUMBEROF(a30_wave_sounds) },
 };
 
 struct firefight_arena const *firefight_arena_get(

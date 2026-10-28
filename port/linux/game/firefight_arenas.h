@@ -43,6 +43,10 @@ struct firefight_arena
 	char const *scenario;
 	struct firefight_stage const *stages;
 	short stage_count;
+	/* the sounds a new wave announces itself with, one at random (the
+	level's own: its scripts' for its waves), NULL for none */
+	char const *const *wave_sounds;
+	short wave_sound_count;
 };
 
 /* the arena of that name, NULL if none */

@@ -571,6 +571,7 @@ symbols in this file:
 #include "networking/network_server_manager.h"
 #include "networking/network_game_manager.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
+#include "firefight.h" /* port: port/linux/game/firefight.c */
 #include "network_votekick.h" /* port: port/linux/game/network_votekick.c */
 #include "network_voice.h" /* port: port/linux/game/network_voice.c */
 #include "network_chat.h" /* port: port/linux/game/network_chat.c */
@@ -2273,7 +2274,10 @@ static void game_engine_rasterize_scoreboard(
 	team_colors[1].green = 0.3f;
 	team_colors[1].blue = 0.6f;
 
-	if (campaign)
+	/* port: or Firefight's set, round, lives and team score (firefight_hud.c) */
+	if (campaign && firefight_scoreboard_title(title_string, NUMBEROF(title_string)))
+		;
+	else if (campaign)
 		usprintf(title_string, L"Co-op");
 	else
 		game_engine_generate_title_string(title_string, player_index);
@@ -2287,6 +2291,9 @@ static void game_engine_rasterize_scoreboard(
 	score_string[0] = 0;
 	if (!campaign)
 		game_engine->format_score_name(score_string);
+	/* port: Firefight's score column */
+	else
+		firefight_scoreboard_heading(score_string, NUMBEROF(score_string));
 	/* port: bounded (the map's column names) */
 	usnprintf(row_string, NUMBEROF(row_string), L"\t%s\t%s\t%s\t%s", column_name, score_name, score_string,
 		network ? L"Ping" : L"");
@@ -2338,6 +2345,9 @@ static void game_engine_rasterize_scoreboard(
 		color.alpha = alpha;
 		score_string[0] = 0;
 		status_string = score_string;
+		/* port: a player's Firefight score */
+		if (campaign)
+			firefight_scoreboard_score(entry->player_index, score_string, NUMBEROF(score_string));
 		if (!campaign)
 		{
 			game_engine->format_player_score(entry->player_index, score_string);
@@ -4046,8 +4056,11 @@ static void game_engine_post_rasterize_in_game(
 
 	gamepad = input_get_gamepad_state(local_player_index);
 	fade = game_engine_globals.hud_message_timers[local_player_index];
+	/* port: Firefight's shows while its viewer is dead or the game is over
+	(firefight_hud.c) */
 	if ((!gamepad ||
 		!gamepad->buttons[_gamepad_binary_button_back]) &&
+		!firefight_scoreboard_shown(local_player_index) &&
 		(!game_engine || game_engine_globals.postgame_state != game_engine_mode_postgame_delay))
 	{
 		/* a frame is no longer a tick (render_interpolation.c): fade in half

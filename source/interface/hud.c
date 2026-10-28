@@ -108,6 +108,7 @@ symbols in this file:
 #include "tag_files/tag_files.h"
 #include "text/draw_string.h"
 #include "coop_spectate.h" /* port: port/linux/game/coop_spectate.c */
+#include "firefight.h" /* port: port/linux/game/firefight.c */
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
 #include "network_chat.h" /* port: port/linux/game/network_chat.c */
 #include "text/font_group.h"
@@ -1484,6 +1485,9 @@ void hud_draw_screen(
 		/* port: the network co-op vote to skip a cinematic */
 		if (cinematic_in_progress())
 			coop_skip_vote_draw(render.local_player_index);
+		/* port: Firefight's status line and banners (firefight_hud.c) */
+		if (firefight_active() && !cinematic_in_progress() && hud_scripted_globals->show_hud)
+			firefight_hud_draw(render.local_player_index);
 
 		/* port: the match clock, in multiplayer */
 		if (game_engine_running() && !cinematic_in_progress() &&

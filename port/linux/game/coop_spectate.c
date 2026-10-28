@@ -27,6 +27,7 @@ It also draws the line telling players about the vote to skip a cutscene
 #include "units/units.h"
 
 #include "coop_spectate.h"
+#include "firefight.h"
 #include "network_coop.h"
 
 #include <math.h>
@@ -253,7 +254,11 @@ void coop_spectate_draw(
 	view from behind instead */
 	if (watched == NONE || !player_try_and_get(watched))
 	{
-		if (coop_spectate_nothing_to_watch(local_player_index))
+		/* (in Firefight, everyone down: the team respawns at the stage's
+		start, firefight.c) */
+		if (coop_spectate_nothing_to_watch(local_player_index) && firefight_active())
+			draw_bottom_text(L"EVERYONE IS DOWN\r\nThe team respawns at the start while it has lives");
+		else if (coop_spectate_nothing_to_watch(local_player_index))
 			draw_bottom_text(L"JOINING THE GAME\r\nYou spawn beside a teammate once it is safe");
 		return;
 	}
