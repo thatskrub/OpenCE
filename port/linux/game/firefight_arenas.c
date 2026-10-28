@@ -157,13 +157,25 @@ static struct firefight_stage const c10_stages[] =
 	{ "swamp_b_flood", "swamp_b_marines", c10_swamp_groups, NUMBEROF(c10_swamp_groups), "lift_meat" },
 };
 
+/* ---------- the other levels' wave sound: no script of theirs announces a
+wave, so the Marines' own shout when a fight begins (their combat dialog's
+newcombatalone, which b40 and c10 load) */
+
+static char const *const marine_wave_sounds[] =
+{
+	"sound\\dialog\\marines\\aussie\\conditional\\combat2\\shouting\\newcombatalone",
+	"sound\\dialog\\marines\\bisenti\\conditional\\combat2\\shouting\\newcombatalone",
+	"sound\\dialog\\marines\\fitzgerald\\conditional\\combat2\\shouting\\newcombatalone",
+	"sound\\dialog\\marines\\mendoza\\conditional\\combat2\\shouting\\newcombatalone",
+};
+
 /* ---------- the arenas */
 
 static struct firefight_arena const firefight_arenas[] =
 {
 	{ "crash_site", "a30", a30_stages, NUMBEROF(a30_stages), a30_wave_sounds, NUMBEROF(a30_wave_sounds) },
-	{ "exterior", "b40", b40_stages, NUMBEROF(b40_stages), NULL, 0 },
-	{ "swamp", "c10", c10_stages, NUMBEROF(c10_stages), NULL, 0 },
+	{ "exterior", "b40", b40_stages, NUMBEROF(b40_stages), marine_wave_sounds, NUMBEROF(marine_wave_sounds) },
+	{ "swamp", "c10", c10_stages, NUMBEROF(c10_stages), marine_wave_sounds, NUMBEROF(marine_wave_sounds) },
 };
 
 struct firefight_arena const *firefight_arena_get(
