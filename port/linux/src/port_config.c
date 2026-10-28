@@ -646,6 +646,11 @@ static const struct config_setting config_settings[] =
 		"radii plus 15 percent, make one more there, up to\n"
 		"floor((players - 1) * coop_enemies * 2 / 300) extras, or floor((coop_enemies_multiplier - 1) * 2 / 3) in static mode.\n"
 		"The host alone creates them, and waits while the starting place is blocked." },
+	{ "network.firefight", _config_string, "\"\"", "HALO_NET_FIREFIGHT", _environment_value, _platform_all,
+		"Firefight: the arena (\"crash_site\", on a30) whose level, played as a\n"
+		"campaign level alone or hosted in co-op, has the campaign's enemies come\n"
+		"in waves instead of its missions (port/linux/game/firefight.c); empty\n"
+		"for none." },
 	{ "network.coop_enemies", _config_integer, "50", "HALO_NET_COOP_ENEMIES", _environment_value, _platform_all,
 		"Online co-op's extra enemies per player, a percentage: for each player\n"
 		"past the first, each squad of enemies a level places gets this much of\n"

@@ -240,6 +240,8 @@ symbols in this file:
 
 #include <stddef.h>
 
+#include "firefight.h" /* port: port/linux/game/firefight.c */
+
 #undef COLLISIONS_EXTERNAL_COLLISION_TEST_LINE
 #undef REAL_MATH_EXTERNAL_NORMALIZE3D
 #undef REAL_MATH_EXTERNAL_POINT_FROM_LINE3D
@@ -618,6 +620,8 @@ void ai_get_major_upgrade_chance(
 		*random_chance = game_difficulty_get_value(_game_difficulty_value_major_upgrade);
 		break;
 	}
+	/* port: Firefight's sets and boss waves (firefight.c) */
+	firefight_major_upgrade_chance(force_major, is_random, random_chance);
 
 	return;
 }

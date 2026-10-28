@@ -183,6 +183,7 @@ struct game_options;
 #include "units/units.h"
 #include "units/vehicles.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
+#include "firefight.h" /* port: port/linux/game/firefight.c */
 #ifdef HALO_PROFILE
 #include "profile_console.h" /* port: port/linux/game/profile_console.c */
 #endif
@@ -386,7 +387,14 @@ void game_tick(
 	them would place the map's actors and objects a second time and make
 	decisions that belong to the host. */
 	if (!(network_game_distributed_client() && network_coop_active()))
-		profile_scope(game_tick_hs_section, hs_update();)
+	{
+		/* port: nor in Firefight, whose director places the waves instead
+		(firefight.c) */
+		if (firefight_active())
+			firefight_update();
+		else
+			profile_scope(game_tick_hs_section, hs_update();)
+	}
 	profile_scope(game_tick_recorded_animations_section, recorded_animations_update();)
 	profile_scope(game_tick_objects_section, objects_update();)
 	profile_scope(game_tick_players_after_section, players_update_after_game();)
@@ -707,7 +715,8 @@ void game_initialize_for_new_map(
 
 	game_globals->active = TRUE;
 	objects_place();
-	if (!game_in_editor())
+	/* port: a Firefight game places its waves instead (firefight.c) */
+	if (!firefight_new_game() && !game_in_editor())
 		ai_place();
 	/* (the map's objects, placed as on the host: a distributed client's own
 	from now on go elsewhere, port/linux/game/network_objects.c) */

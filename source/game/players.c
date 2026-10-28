@@ -229,6 +229,7 @@ symbols in this file:
 
 #include "cseries.h"
 #include "infection.h" /* port: port/linux/game/infection.c */
+#include "firefight.h" /* port: port/linux/game/firefight.c */
 #include "cseries/errors.h"
 #include "cseries/profile.h"
 #include "ai/ai.h"
@@ -1434,6 +1435,9 @@ static void player_spawn(
 		/* port: a network co-op respawn starts behind its teammate
 		(players_coop_spawn_location) */
 		starting_location = players_coop_spawn_location(&spawn_location);
+		/* port: else, in Firefight, in its arena's stage (firefight.c) */
+		if (!starting_location)
+			starting_location = firefight_spawn_location(player_index, &spawn_location);
 		if (!starting_location && starting_location_index != NONE)
 			starting_location = player_get_starting_location(starting_location_index);
 		if (starting_location)
