@@ -684,7 +684,7 @@
 	</strings>
 	<strings name="main_menu/multiplayer_type_select/server_settings/firefight_options/cap_firefight_options">
 		<string text="The level is played as the campaign has it."/>
-		<string text="The campaign's enemies come in waves on the level's\narena (a30 has one), the team sharing its lives."/>
+		<string text="The campaign's enemies come in waves on the level's\narena (a30, b40 and c10 have one), the team sharing\nits lives."/>
 		<string text="The lives the team shares at the start. Each\nrespawn takes one; with none left, the game ends."/>
 		<string text="The lives the team shares at the start. Each\nrespawn takes one; with none left, the game ends."/>
 		<string text="The lives the team shares at the start. Each\nrespawn takes one; with none left, the game ends."/>

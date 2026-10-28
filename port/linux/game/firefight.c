@@ -162,6 +162,8 @@ struct firefight_stage_state
 	long place_references[FIREFIGHT_MAXIMUM_GROUPS];
 	long attack_references[FIREFIGHT_MAXIMUM_GROUPS];
 	short pools[FIREFIGHT_MAXIMUM_GROUPS];
+	/* the times each group is placed */
+	short place_counts[FIREFIGHT_MAXIMUM_GROUPS];
 	/* the groups that placed nobody (none at the game's difficulty), not
 	chosen again */
 	unsigned long empty_groups;
@@ -264,10 +266,12 @@ static void firefight_add_player_start(
 }
 
 /* the players' starts: the encounter's player starting locations, else
-its squads' starting locations */
+its squads' starting locations (those of the squad of that name alone, if
+one is named) */
 static void firefight_find_player_starts(
 	struct firefight_stage_state *stage,
-	long encounter_index)
+	long encounter_index,
+	char const *squad_name)
 {
 	struct scenario *scenario = global_scenario_get();
 	struct encounter_definition *encounter = TAG_BLOCK_GET_ELEMENT(&scenario->ai_encounters, encounter_index,
@@ -290,6 +294,8 @@ static void firefight_find_player_starts(
 			struct squad_definition *squad = TAG_BLOCK_GET_ELEMENT(&encounter->squads, squad_index,
 				struct squad_definition);
 
+			if (squad_name && strcmp(squad->name, squad_name))
+				continue;
 			for (index = 0; index < squad->starting_locations.count; index++)
 			{
 				struct actor_starting_location *location = TAG_BLOCK_GET_ELEMENT(&squad->starting_locations,
@@ -347,6 +353,7 @@ static boolean firefight_resolve_stage(
 		stage->place_references[stage->group_count] = place_reference;
 		stage->attack_references[stage->group_count] = attack_reference;
 		stage->pools[stage->group_count] = group->pool;
+		stage->place_counts[stage->group_count] = (short)MAX(group->count, 1);
 		stage->group_count++;
 	}
 
@@ -354,7 +361,7 @@ static boolean firefight_resolve_stage(
 		scenario_get_encounter_by_name(scenario, definition->player_encounter) :
 		stage->encounter_index;
 	if (player_encounter_index != NONE)
-		firefight_find_player_starts(stage, player_encounter_index);
+		firefight_find_player_starts(stage, player_encounter_index, definition->player_squad);
 	platform_log("firefight: stage %s, structure bsp %d, %d groups, %d player starts", definition->encounter,
 		stage->structure_bsp_index, stage->group_count, stage->player_start_count);
 
@@ -512,6 +519,7 @@ static void firefight_start_wave(
 			firefight.wave >= 2 && (index & 1) ? _firefight_pool_heavy : _firefight_pool_light;
 		long living = firefight_living_count();
 		short group;
+		short placement;
 
 		if (actor_data->actual_count >= MAXIMUM_ACTORS - FIREFIGHT_RESERVED_ACTORS)
 			break;
@@ -519,7 +527,11 @@ static void firefight_start_wave(
 		if (group == NONE)
 			break;
 		SET_FLAG(placed, group, TRUE);
-		ai_scripting_place(stage->place_references[group]);
+		for (placement = 0; placement < stage->place_counts[group] &&
+			actor_data->actual_count < MAXIMUM_ACTORS - FIREFIGHT_RESERVED_ACTORS; placement++)
+		{
+			ai_scripting_place(stage->place_references[group]);
+		}
 		if (firefight_living_count() == living)
 		{
 			SET_FLAG(stage->empty_groups, group, TRUE);

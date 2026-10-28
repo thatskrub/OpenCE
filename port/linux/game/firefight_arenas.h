@@ -16,23 +16,28 @@ enum
 
 /* a group of enemies a wave places: a platoon or squad of the stage's
 encounter, by name (as the scripts' ai_place names it), and the one it then
-joins to come at the players (its firing positions), NULL to stay */
+joins to come at the players (its firing positions), NULL to stay; placed
+`count` times (0 is once: a squad of one placed again stands at another of
+its starting locations) */
 struct firefight_group
 {
 	char const *place;
 	char const *attack;
 	short pool;
+	short count;
 };
 
 /* a place an arena's players fight in: an encounter's waves, the players
 starting at its player starting locations (else at those of the starting
-locations of player_encounter's squads, where the level's Marines stand) */
+locations of player_encounter's squads, where the level's Marines stand, or
+of its squad player_squad alone) */
 struct firefight_stage
 {
 	char const *encounter;
 	char const *player_encounter;
 	struct firefight_group const *groups;
 	short group_count;
+	char const *player_squad;
 };
 
 /* an arena: a level and its stages, played in turn, a round each */

@@ -1478,7 +1478,7 @@ COOP_SETUP_SCREENS = [
     ("firefight_options", "FIREFIGHT", "Waves of the campaign's enemies in place of the\\nlevel's missions, for this game.", [
         ("firefight", "FIREFIGHT:", ["OFF", "ON"], [
             "The level is played as the campaign has it.",
-            "The campaign's enemies come in waves on the level's\\narena (a30 has one), the team sharing its lives.",
+            "The campaign's enemies come in waves on the level's\\narena (a30, b40 and c10 have one), the team sharing\\nits lives.",
         ]),
         ("firefight_lives", "STARTING LIVES:", [str(value) for value in FIREFIGHT_LIVES],
          ["The lives the team shares at the start. Each\\nrespawn takes one; with none left, the game ends."] *

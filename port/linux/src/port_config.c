@@ -650,8 +650,9 @@ static const struct config_setting config_settings[] =
 		"Firefight (port/linux/game/firefight.c): a level played as a campaign\n"
 		"level, alone or hosted in co-op, has the campaign's enemies come in waves\n"
 		"instead of its missions: \"on\" on the level's own arena (a30's\n"
-		"\"crash_site\"), an arena's name for that one, \"off\" (or empty) for\n"
-		"none. Server Setup's FIREFIGHT in co-op writes its choice here." },
+		"\"crash_site\", b40's \"exterior\", c10's \"swamp\"), an arena's name for\n"
+		"that one, \"off\" (or empty) for none. Server Setup's FIREFIGHT in\n"
+		"co-op writes its choice here." },
 	{ "network.firefight_lives", _config_integer, "7", "HALO_NET_FIREFIGHT_LIVES", _environment_value,
 		_platform_all,
 		"Firefight's lives the team shares at the start (1 to 99); each respawn\n"

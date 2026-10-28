@@ -10,7 +10,10 @@ leaves its group out.
 Bungie built a30's (the level Halo) as the scripts' waves: each wave's squads are placed in a landing-zone
 platoon (wave_N_lz_toon), which the scripts carry in a dropship and then
 migrate to the wave's attacking platoon (wave_N_attack_toon), whose firing
-positions come at the players.
+positions come at the players. The other levels' encounters hold their
+ground: their squads are sent to an empty squad of the encounter whose
+firing positions are nearest the players' start (as their scripts
+ai_migrate them), and Flood come at the players by themselves.
 */
 
 #include "cseries.h"
@@ -77,11 +80,90 @@ static char const *const a30_wave_sounds[] =
 	"sound\\dialog\\a30\\a30_220_bisenti",
 };
 
+/* ---------- b40: the snowfield below the bridge, its two ends */
+
+/* (the players at the Marines' start, beside the cliff; the squads, of two
+or one, placed twice, come to squad_g's firing positions, 25 from them, the
+Elites to squad_e's, 10 (squads left at their own, farther, may never
+fire); grunts_g and jackals_g hold squad_e's already) */
+static struct firefight_group const b40_snowfield_groups[] =
+{
+	{ "grunts_k", "squad_g", _firefight_pool_light, 2 },
+	{ "jackals_k2", "squad_g", _firefight_pool_light, 2 },
+	{ "grunts_a", "squad_g", _firefight_pool_light, 2 },
+	{ "jackals_o", "squad_g", _firefight_pool_light, 2 },
+	{ "jackals_q", "squad_g", _firefight_pool_light, 2 },
+	{ "jackals_i", "squad_g", _firefight_pool_light, 2 },
+	{ "grunts_g", NULL, _firefight_pool_light, 2 },
+	{ "jackals_g", NULL, _firefight_pool_light, 2 },
+	{ "elites_k", "squad_e", _firefight_pool_heavy, 2 },
+	{ "jackals_k1", "squad_e", _firefight_pool_heavy, 2 },
+	{ "elites_o", "squad_e", _firefight_pool_heavy, 2 },
+	{ "elites_i", "squad_e", _firefight_pool_heavy, 2 },
+	{ "elites_a", "squad_e", _firefight_pool_heavy, 2 },
+};
+
+/* (the snowfield's far side, where the Pelican's Marines land; the squads,
+placed twice, come to squad_g's firing positions, 15 from them (from their
+own, 20 to 40 away, they did not fire); not elites_e and its platoon, which
+stand at the Marines'.
+The valley beyond the tunnel was tried: its waves, up on its plateau, never
+came down to its floor) */
+static struct firefight_group const b40_landing_groups[] =
+{
+	{ "grunts_q", "squad_g", _firefight_pool_light, 2 },
+	{ "jackals_q", "squad_g", _firefight_pool_light, 2 },
+	{ "grunts_k", "squad_g", _firefight_pool_light, 2 },
+	{ "jackals_k", "squad_g", _firefight_pool_light, 2 },
+	{ "grunts_u", "squad_g", _firefight_pool_light, 2 },
+	{ "jackals_u", "squad_g", _firefight_pool_light, 2 },
+	{ "elites_q", "squad_g", _firefight_pool_heavy, 2 },
+	{ "elites_k", "squad_g", _firefight_pool_heavy, 2 },
+	{ "elites_u", "squad_g", _firefight_pool_heavy, 2 },
+};
+
+static struct firefight_stage const b40_stages[] =
+{
+	{ "ext_a_area_a_cov", "ext_a_area_a_marines", b40_snowfield_groups, NUMBEROF(b40_snowfield_groups),
+		"marines_ini" },
+	{ "ext_a_area_b_cov", "ext_a_area_b_marines", b40_landing_groups, NUMBEROF(b40_landing_groups),
+		"marines_ini" },
+};
+
+/* ---------- c10: the swamp below the lift (its labs were tried: their Flood
+stay on the walkways and in the rooms the scripts' doors and lifts join, and
+never came at the players) */
+
+/* (Flood combat forms: the swamp's squads are of one each, placed three
+times over their starting locations) */
+static struct firefight_group const c10_swamp_groups[] =
+{
+	{ "flood_a", NULL, _firefight_pool_light, 3 },
+	{ "flood_b", NULL, _firefight_pool_light, 3 },
+	{ "flood_c", NULL, _firefight_pool_light, 3 },
+	{ "flood_j", NULL, _firefight_pool_light, 3 },
+	{ "flood_k", NULL, _firefight_pool_light, 3 },
+	{ "flood_l", NULL, _firefight_pool_light, 3 },
+	{ "flood_m", NULL, _firefight_pool_light, 3 },
+	{ "flood_n", NULL, _firefight_pool_light, 3 },
+	{ "flood_initial", NULL, _firefight_pool_heavy },
+	{ "flood_d", NULL, _firefight_pool_heavy, 4 },
+	{ "flood_e", NULL, _firefight_pool_heavy, 4 },
+	{ "last_wave", NULL, _firefight_pool_boss },
+};
+
+static struct firefight_stage const c10_stages[] =
+{
+	{ "swamp_b_flood", "swamp_b_marines", c10_swamp_groups, NUMBEROF(c10_swamp_groups), "lift_meat" },
+};
+
 /* ---------- the arenas */
 
 static struct firefight_arena const firefight_arenas[] =
 {
 	{ "crash_site", "a30", a30_stages, NUMBEROF(a30_stages), a30_wave_sounds, NUMBEROF(a30_wave_sounds) },
+	{ "exterior", "b40", b40_stages, NUMBEROF(b40_stages), NULL, 0 },
+	{ "swamp", "c10", c10_stages, NUMBEROF(c10_stages), NULL, 0 },
 };
 
 struct firefight_arena const *firefight_arena_get(
