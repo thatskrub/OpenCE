@@ -19,8 +19,17 @@ next: once the pause is over, the players are moved there (the structure BSP
 switched first if it differs). A set is a round in each stage, at least
 three; each set brings bigger waves and more major upgrades.
 
+The team shares its lives: it starts with seven and gets one for each round
+it finishes. A player who dies respawns as in co-op, beside a teammate, while
+there are lives, each respawn taking one (players.c); when every player is
+dead, those who can are respawned at the stage's start after a moment, and
+with no lives left the game is over: back to the main menu, or in co-op the
+round ends and everyone goes back to the lobby. Each kill scores its player
+by the enemy's kind, with a bonus for a headshot or a melee kill.
+
 Only the host decides; the waves' actors reach co-op clients as any actor
-does (network_actors.c).
+does (network_actors.c), and the director's state (its set, round and wave,
+the lives and the scores) as network_firefight.c sends it.
 */
 
 #include "cseries.h"
@@ -29,13 +38,16 @@ does (network_actors.c).
 #include "ai/ai_scenario_definitions.h"
 #include "ai/ai_script.h"
 #include "ai/encounters.h"
+#include "ai/actor_types.h"
 #include "game/game.h"
+#include "game/game_allegiance.h"
 #include "game/game_engine.h"
 #include "game/players.h"
 #include "interface/hud.h"
 #include "main/main.h"
 #include "memory/data.h"
 #include "networking/network_game_globals.h"
+#include "networking/network_server_manager.h"
 #include "objects/objects.h"
 #include "physics/collisions.h"
 #include "scenario/scenario.h"
@@ -47,6 +59,7 @@ does (network_actors.c).
 #include "coop_enemies.h"
 #include "firefight.h"
 #include "firefight_arenas.h"
+#include "network_firefight.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -97,6 +110,27 @@ enum
 	FIREFIGHT_TELEPORT_ATTEMPTS = 8,
 	/* a player farther than this from the stage's start is moved there */
 	FIREFIGHT_ARRIVED_DISTANCE = 20,
+
+	/* the team's lives at the start, and for each round it finishes */
+	FIREFIGHT_STARTING_LIVES = 7,
+	FIREFIGHT_ROUND_LIVES = 1,
+	/* every player dead: the time before they respawn at the stage's start */
+	FIREFIGHT_ALL_DEAD_TICKS = 5 * TICKS_PER_SECOND,
+	/* the game over: the time before the game ends */
+	FIREFIGHT_GAME_OVER_TICKS = 10 * TICKS_PER_SECOND,
+
+	/* a kill's score by the enemy's kind, and its bonuses */
+	FIREFIGHT_SCORE_GRUNT = 10,
+	FIREFIGHT_SCORE_JACKAL = 15,
+	FIREFIGHT_SCORE_ELITE = 30,
+	FIREFIGHT_SCORE_MAJOR_ELITE = 10,
+	FIREFIGHT_SCORE_HUNTER = 50,
+	FIREFIGHT_SCORE_COMBAT_FORM = 15,
+	FIREFIGHT_SCORE_CARRIER_FORM = 5,
+	FIREFIGHT_SCORE_INFECTION_FORM = 1,
+	FIREFIGHT_SCORE_SENTINEL = 20,
+	FIREFIGHT_SCORE_HEADSHOT = 10,
+	FIREFIGHT_SCORE_MELEE = 10,
 };
 
 /* the major upgrade chance each set adds */
@@ -108,6 +142,7 @@ enum
 	_firefight_state_wave_gap,
 	_firefight_state_wave,
 	_firefight_state_intermission,
+	_firefight_state_game_over,
 };
 
 /* ---------- structures */
@@ -166,6 +201,16 @@ static struct
 	long revealed_time;
 	short revealed_count;
 	long revealed_units[FIREFIGHT_REMAINING_ENEMIES];
+
+	/* the team's lives left */
+	short lives;
+	/* when every player was found dead (NONE: someone lives) */
+	long all_dead_time;
+	/* the game was ended (game over) */
+	boolean ended;
+	/* each player's score, by absolute index, and the team's */
+	long scores[HALO_PORT_MAXIMUM_NETWORK_PLAYERS];
+	long team_score;
 } firefight;
 
 /* ---------- private code */
@@ -682,11 +727,153 @@ static void firefight_next_round(
 	}
 }
 
+/* a kill's score: by the enemy's kind (a major Elite's more), nothing for
+anyone else */
+static long firefight_kill_score(
+	long unit_index)
+{
+	struct unit_datum *unit = (struct unit_datum *)object_try_and_get_and_verify_type(unit_index,
+		_object_mask_unit);
+	long actor_index;
+	struct actor_datum *actor;
+	char const *variant_name;
+
+	if (!unit || !game_team_is_enemy(_game_team_player, unit->object.owner_team_index))
+		return 0;
+	actor_index = unit->unit.actor_index != NONE ? unit->unit.actor_index : unit->unit.swarm_actor_index;
+	if (actor_index == NONE || !(actor = (struct actor_datum *)datum_try_and_get(actor_data, actor_index)))
+		return 0;
+	switch (actor->meta.type)
+	{
+	case _actor_grunt:
+		return FIREFIGHT_SCORE_GRUNT;
+	case _actor_jackal:
+		return FIREFIGHT_SCORE_JACKAL;
+	case _actor_elite:
+		/* (the major variants are named so: "elite major plasma rifle") */
+		variant_name = actor->meta.variant_definition_index != NONE ?
+			tag_get_name(actor->meta.variant_definition_index) : NULL;
+		return FIREFIGHT_SCORE_ELITE + (variant_name && strstr(variant_name, "major") ? FIREFIGHT_SCORE_MAJOR_ELITE : 0);
+	case _actor_hunter:
+		return FIREFIGHT_SCORE_HUNTER;
+	case _actor_combat_form:
+		return FIREFIGHT_SCORE_COMBAT_FORM;
+	case _actor_carrier_form:
+		return FIREFIGHT_SCORE_CARRIER_FORM;
+	case _actor_infection_form:
+		return FIREFIGHT_SCORE_INFECTION_FORM;
+	case _actor_sentinel:
+		return FIREFIGHT_SCORE_SENTINEL;
+	default:
+		return 0;
+	}
+}
+
+static void firefight_log_scores(
+	void)
+{
+	struct data_iterator iterator;
+	struct player_datum *player;
+
+	data_iterator_new(&iterator, player_data);
+	while ((player = (struct player_datum *)data_iterator_next(&iterator)) != NULL)
+	{
+		platform_log("firefight: player %d score %ld, deaths %d", (int)DATUM_INDEX_TO_ABSOLUTE_INDEX(iterator.datum_index),
+			(long)firefight.scores[DATUM_INDEX_TO_ABSOLUTE_INDEX(iterator.datum_index)], (int)player->statistics.deaths);
+	}
+	platform_log("firefight: team score %ld", firefight.team_score);
+}
+
+/* every player dead: after a moment, those the lives allow respawn at the
+stage's start; with none left, the game is over. Once over, it ends: back to
+the main menu, or a co-op host's round ends for everyone (as a won co-op
+level's does: main.c), back to the lobby. */
+static void firefight_update_team(
+	void)
+{
+	struct data_iterator iterator;
+	struct player_datum *player;
+
+	if (firefight.state == _firefight_state_game_over)
+	{
+		if (!firefight.ended && firefight_state_ticks() >= FIREFIGHT_GAME_OVER_TICKS)
+		{
+			firefight.ended = TRUE;
+			platform_log("firefight: game over, ending the game");
+			if (game_connection() == _game_connection_network_server)
+				network_game_server_port_cooperative_won(NULL);
+			else
+				main_goto_main_menu();
+		}
+		return;
+	}
+	if (!players_are_all_dead())
+	{
+		firefight.all_dead_time = NONE;
+		return;
+	}
+	if (firefight.all_dead_time == NONE)
+		firefight.all_dead_time = game_time_get();
+	if (firefight.lives <= 0)
+	{
+		platform_log("firefight: game over at set %d round %d wave %d", firefight.set + 1, firefight.round + 1,
+			firefight.wave + 1);
+		firefight_log_scores();
+		firefight_set_state(_firefight_state_game_over);
+		return;
+	}
+	if (game_time_get() - firefight.all_dead_time < FIREFIGHT_ALL_DEAD_TICKS)
+		return;
+	firefight.all_dead_time = NONE;
+	data_iterator_new(&iterator, player_data);
+	while ((player = (struct player_datum *)data_iterator_next(&iterator)) != NULL && firefight.lives > 0)
+	{
+		if (player->unit_index == NONE && !player->quit_out_of_game)
+			players_firefight_respawn(iterator.datum_index);
+	}
+}
+
+/* the state the host's clients are sent (network_firefight.c) */
+static void firefight_send_status(
+	void)
+{
+	struct network_firefight_status status;
+	struct data_iterator iterator;
+	struct player_datum *player;
+
+	csmemset(&status, 0, sizeof(status));
+	status.active = TRUE;
+	status.game_over = firefight.state == _firefight_state_game_over;
+	status.state = firefight.state;
+	status.stage = firefight.stage;
+	status.set = firefight.set;
+	status.round = firefight.round;
+	status.wave = firefight.wave;
+	status.lives = firefight.lives;
+	status.living = (short)MIN(firefight_living_count(), SHORT_MAX);
+	status.team_score = firefight.team_score;
+	data_iterator_new(&iterator, player_data);
+	while ((player = (struct player_datum *)data_iterator_next(&iterator)) != NULL &&
+		status.score_count < NETWORK_FIREFIGHT_MAXIMUM_SCORES)
+	{
+		short index = (short)DATUM_INDEX_TO_ABSOLUTE_INDEX(iterator.datum_index);
+
+		status.scores[status.score_count].player_index = (word)index;
+		status.scores[status.score_count].score = firefight.scores[index];
+		status.score_count++;
+	}
+	network_firefight_update(&status);
+}
+
 /* ---------- public code */
 
 boolean firefight_active(
 	void)
 {
+	struct network_firefight_status status;
+
+	if (network_game_distributed_client())
+		return network_firefight_status(&status) && status.active;
 	return firefight.active;
 }
 
@@ -697,6 +884,9 @@ boolean firefight_new_game(
 	short index;
 
 	csmemset(&firefight, 0, sizeof(firefight));
+	/* (a co-op client's game is Firefight as its host's state says) */
+	if (network_game_distributed_client())
+		return FALSE;
 	if (!arena_name || !arena_name[0] || game_in_editor() || !global_scenario ||
 		global_scenario->type != _scenario_type_solo || game_engine_running())
 	{
@@ -725,6 +915,8 @@ boolean firefight_new_game(
 	firefight.active = TRUE;
 	firefight.attack_time = NONE;
 	firefight.revealed_time = NONE;
+	firefight.lives = FIREFIGHT_STARTING_LIVES;
+	firefight.all_dead_time = NONE;
 	firefight_set_state(_firefight_state_moving);
 	platform_log("firefight: %s on %s, %d stages", firefight.arena->name, firefight_scenario_name(),
 		firefight.stage_count);
@@ -770,7 +962,9 @@ void firefight_update(
 			{
 				firefight_hide_revealed(TRUE);
 				firefight.revealed_time = NONE;
-				platform_log("firefight: set %d round %d over", firefight.set + 1, firefight.round + 1);
+				firefight.lives = (short)MIN(firefight.lives + FIREFIGHT_ROUND_LIVES, SHORT_MAX);
+				platform_log("firefight: set %d round %d over, %d lives, team score %ld", firefight.set + 1,
+					firefight.round + 1, firefight.lives, firefight.team_score);
 				firefight_set_state(_firefight_state_intermission);
 			}
 		}
@@ -787,7 +981,57 @@ void firefight_update(
 		if (firefight_state_ticks() >= FIREFIGHT_INTERMISSION_TICKS)
 			firefight_next_round();
 		break;
+
+	case _firefight_state_game_over:
+		break;
 	}
+	firefight_update_team();
+	firefight_send_status();
+}
+
+boolean firefight_respawn_allowed(
+	void)
+{
+	if (!firefight.active)
+		return TRUE;
+	return firefight.lives > 0 && firefight.state != _firefight_state_game_over;
+}
+
+void firefight_note_respawn(
+	long player_index)
+{
+	if (!firefight.active || network_game_distributed_client())
+		return;
+	firefight.lives = (short)MAX(firefight.lives - 1, 0);
+	platform_log("firefight: player %d respawned, %d lives left", (int)DATUM_INDEX_TO_ABSOLUTE_INDEX(player_index),
+		(int)firefight.lives);
+}
+
+void firefight_note_kill(
+	long unit_index,
+	long player_index,
+	boolean melee,
+	boolean headshot)
+{
+	long score;
+	short index;
+
+	if (!firefight.active || network_game_distributed_client() || player_index == NONE ||
+		!player_try_and_get(player_index))
+	{
+		return;
+	}
+	score = firefight_kill_score(unit_index);
+	if (score <= 0)
+		return;
+	if (headshot)
+		score += FIREFIGHT_SCORE_HEADSHOT;
+	if (melee)
+		score += FIREFIGHT_SCORE_MELEE;
+	index = (short)DATUM_INDEX_TO_ABSOLUTE_INDEX(player_index);
+	if (VALID_INDEX(index, HALO_PORT_MAXIMUM_NETWORK_PLAYERS))
+		firefight.scores[index] += score;
+	firefight.team_score += score;
 }
 
 struct player_starting_location const *firefight_spawn_location(

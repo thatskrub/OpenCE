@@ -401,6 +401,9 @@ void players_reconnect_to_structure_bsp(
 
 boolean players_are_all_dead(
 	void);
+/* port: Firefight respawns a dead player (port/linux/game/firefight.c) */
+void players_firefight_respawn(
+	long player_index);
 boolean any_player_is_in_the_air(
 	void);
 boolean any_player_is_dead(

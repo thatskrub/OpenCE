@@ -1534,6 +1534,18 @@ static void player_spawn(
 	player2->action_object_index = NONE;
 	if (player->local_player_index != NONE)
 		observer_obsolete_position(player->local_player_index);
+	/* port: a Firefight respawn takes a life from the team (firefight.c) */
+	if (player->unit_index != NONE && player->statistics.deaths != 0)
+		firefight_note_respawn(player_index);
+
+	return;
+}
+
+/* port: Firefight respawns a dead player at its arena's stage (firefight.c) */
+void players_firefight_respawn(
+	long player_index)
+{
+	player_spawn(player_index);
 
 	return;
 }
@@ -2494,7 +2506,8 @@ boolean players_respawn_coop(
 		data_iterator_new(&iterator, player_data);
 		while (player = data_iterator_next(&iterator))
 		{
-			if (player->unit_index == NONE)
+			/* port: none in Firefight once the team's lives are gone (firefight.c) */
+			if (player->unit_index == NONE && firefight_respawn_allowed())
 			{
 				player_spawn(iterator.datum_index);
 				if (player->unit_index != NONE)
@@ -2941,6 +2954,12 @@ static boolean players_respawn_network_coop(
 		}
 		else if (players_coop_waiting_to_start(iterator.datum_index))
 		{
+			continue;
+		}
+		/* port: in Firefight, while the team has lives (firefight.c) */
+		else if (!firefight_respawn_allowed())
+		{
+			result = FALSE;
 			continue;
 		}
 		players_coop_spawn_beside_index = safe_unit_index;
@@ -5183,7 +5202,9 @@ void players_update_after_game(
 
 	if (players_globals->all_dead)
 	{
-		if (!game_engine_running() && !players_lost_map_started && !network_game_distributed_client())
+		/* port: Firefight respawns the team, or ends the game, itself (firefight.c) */
+		if (!game_engine_running() && !players_lost_map_started && !network_game_distributed_client() &&
+			!firefight_active())
 		{
 			main_lost_map();
 			players_lost_map_started = TRUE;

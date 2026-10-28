@@ -149,6 +149,10 @@ enum
 	units' cameras (a VR build's hand), to the host, unreliably, every tick
 	while they do (network_damage.c): its line of sight check's */
 	_distributed_message_fire_origins = 93,
+	/* Firefight (a co-op game: firefight.c): the host's director's state,
+	its set, round, wave, lives and the players' scores, to every client,
+	unreliably, twice a second and when it changes (network_firefight.c) */
+	_distributed_message_firefight_state = 94,
 
 	NUMBER_OF_DISTRIBUTED_MESSAGES
 };

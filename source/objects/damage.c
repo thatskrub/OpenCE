@@ -104,6 +104,7 @@ symbols in this file:
 #include "cseries.h"
 #include "damage.h"
 #include "game_modes.h" /* port: port/linux/game/game_modes.c */
+#include "firefight.h" /* port: port/linux/game/firefight.c */
 #include "ai/ai.h"
 #include "cseries/errors.h"
 #include "effects/effects.h"
@@ -1131,6 +1132,10 @@ static void object_damage_aftermath(
 				damage->owner_object_index,
 				damage->owner_team_index);
 			game_modes_kill_by_melee(FALSE);
+			/* port: Firefight's score (firefight.c) */
+			firefight_note_kill(object_index, damage->owner_player_index,
+				damage_effect->damage.category == _damage_category_melee,
+				TEST_FLAG(being_damaged_flags, _object_being_damaged_killed_instantly_bit));
 		}
 	}
 	else if (game_engine_can_score())

@@ -298,6 +298,17 @@ the target can be: no more than 0.05 world units behind the eye along the
 line to the target, 0.2 to its side and 0.1 above it (a client cannot claim
 a hand far past a corner). Such hits are counted in the host's log, and the
 host's `network.fire_origins` (true by default) turns the hand off.
+Then version 40 sends a Firefight game's state (distributed message 94,
+`network_firefight.c`: `struct distributed_firefight_state` and up to 32
+`struct distributed_firefight_score`s, each player's by absolute index): the
+host's director's set, round and wave, the team's lives, the enemies alive,
+the team's and each player's score, and whether the game is over, unreliably
+twice a second and when it changes. A client checks it whole (its size, the
+count, the flags and indices) and keeps the latest, by its game time; the
+host's state alone makes a client's game Firefight, whatever its own
+`network.firefight` says. The version is raised because a client that does
+not know the message would not show the host's Firefight state, nor know its
+game is one.
 
 `port/linux/network_format.txt` records the wire format of the current
 version (`tools/network_format.py`): `test_linux_port.py` fails when the

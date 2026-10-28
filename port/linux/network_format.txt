@@ -1,4 +1,4 @@
-version 39
+version 40
 bound CHAT_TEXT_SIZE 64
 bound DISCORD_ID_SIZE 24
 bound DISCORD_NAME_SIZE 40
@@ -29,6 +29,7 @@ bound MAXIMUM_QUEUED_EVENTS 128
 bound MAXIMUM_REGIONS_PER_OBJECT 8
 bound MAXIMUM_STATISTICS_PER_MESSAGE 64
 bound MAXIMUM_WEAPONS_PER_UNIT 4
+bound NETWORK_FIREFIGHT_MAXIMUM_SCORES 32
 bound NUMBER_OF_ANGLES enum f0ce7d0319b6
 bound NUMBER_OF_OBJECT_CHANGE_COLORS enum b00724872e2d
 bound NUMBER_OF_PLAYER_POWERUPS enum 43075f42087c
@@ -77,6 +78,7 @@ enum _distributed_message_coop_sounds_retired 67
 enum _distributed_message_damage_animations 75
 enum _distributed_message_damage_events 10
 enum _distributed_message_fire_origins 93
+enum _distributed_message_firefight_state 94
 enum _distributed_message_game_state 7
 enum _distributed_message_hit_reports 11
 enum _distributed_message_inventories 4
@@ -272,6 +274,9 @@ struct distributed_damage_event 659e4d49733b
 struct distributed_damage_event_message c954363dcf26
 struct distributed_fire_origin 700dfdb20582
 struct distributed_fire_origin_message 7613e8f9d43e
+struct distributed_firefight_score 2e04e2cf7856
+struct distributed_firefight_state 33f96e22c79f
+struct distributed_firefight_state_message 3639527dd899
 struct distributed_hit_report 9a44ca43a88b
 struct distributed_hit_report_message 37279f2addca
 struct distributed_infection_player d8b98eecf26b
